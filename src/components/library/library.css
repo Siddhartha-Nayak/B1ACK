@@ -1,0 +1,114 @@
+.file-library {
+  position: fixed;
+  right: 0;
+  top: 54px;
+  bottom: 28px;
+  z-index: 40;
+  width: min(440px, 100vw);
+  overflow-y: auto;
+  padding: 24px;
+  background: #111;
+  border-left: 1px solid #333;
+  box-shadow: -16px 0 32px #0005;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.file-library header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.file-library h2 {
+  margin: 5px 0 0;
+  font-size: 22px;
+}
+.file-library h3 {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.library-hint {
+  color: #a2a2a2;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+.library-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.file-library button {
+  min-height: 36px;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #1c1c1c;
+  color: #ddd;
+}
+.file-library button:hover {
+  background: #292929;
+}
+.file-library button:disabled {
+  opacity: 0.5;
+}
+.file-library input,
+.file-library textarea {
+  width: 100%;
+  min-width: 0;
+  background: #0b0b0b;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px;
+}
+.file-library textarea {
+  min-height: 210px;
+  resize: vertical;
+  font-family: Consolas, monospace;
+  line-height: 1.6;
+}
+.library-items {
+  max-height: 220px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: grid;
+  gap: 4px;
+}
+.library-items button {
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.library-items button span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.library-items button small {
+  white-space: nowrap;
+  color: #999;
+}
+.library-items button[aria-pressed='true'] {
+  background: #303030;
+  border-color: #666;
+}
+.file-library form,
+.library-preview {
+  display: grid;
+  gap: 12px;
+}
+.file-library label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+.library-preview img {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+.file-library [role='status'] {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

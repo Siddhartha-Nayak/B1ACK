@@ -1,0 +1,28 @@
+[package]
+name = "parallelade"
+version = "0.2.0"
+description = "A lightweight parallel coding-agent terminal environment"
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "parallelade_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+portable-pty = "0.9"
+sysinfo = "0.33"
+which = "7"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "s"
