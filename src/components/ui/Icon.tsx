@@ -12,6 +12,7 @@ type Name =
   | 'tabs'
   | 'split'
   | 'terminal'
+  | 'sparkles'
   | 'grip'
   | 'chevronDown'
   | 'chevronRight';
@@ -30,6 +31,8 @@ const paths: Record<Name, string> = {
   tabs: 'M3 6h18v14H3zM3 6V3h8v3',
   split: 'M3 4h18v16H3zM12 4v16',
   terminal: 'M4 6l6 6-6 6M13 18h7',
+  sparkles:
+    'M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16',
   grip: 'M8 5h.01M16 5h.01M8 12h.01M16 12h.01M8 19h.01M16 19h.01',
 };
 export function Icon({ name, size = 16 }: { name: Name; size?: number }) {

@@ -4,6 +4,11 @@ use crate::{
 };
 use std::sync::Arc;
 use tauri::State;
+
+#[derive(serde::Serialize)]
+pub struct AgentInstallReport {
+    pub output: String,
+}
 #[tauri::command]
 pub async fn terminal_start(
     manager: State<'_, Arc<Manager>>,
@@ -78,6 +83,57 @@ pub async fn command_detect(
     })
     .await
     .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn agents_install_all() -> Result<AgentInstallReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(windows)]
+        let output = std::process::Command::new("cmd.exe")
+            .args([
+                "/d",
+                "/s",
+                "/c",
+                "npm.cmd install --global @openai/codex @anthropic-ai/claude-code @google/gemini-cli @github/copilot",
+            ])
+            .output()
+            .map_err(|e| format!("Could not start npm. Install Node.js 22+ and try again: {e}"))?;
+
+        #[cfg(not(windows))]
+        let output = std::process::Command::new("npm")
+            .args([
+                "install",
+                "--global",
+                "@openai/codex",
+                "@anthropic-ai/claude-code",
+                "@google/gemini-cli",
+                "@github/copilot",
+            ])
+            .output()
+            .map_err(|e| format!("Could not start npm. Install Node.js and try again: {e}"))?;
+
+        let summary = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        if !output.status.success() {
+            return Err(format!(
+                "Agent installation failed (exit {}). {}",
+                output.status.code().unwrap_or(-1),
+                summary.chars().rev().take(2000).collect::<String>().chars().rev().collect::<String>()
+            ));
+        }
+        Ok(AgentInstallReport {
+            output: if summary.trim().is_empty() {
+                "All compatible coding agents were installed.".into()
+            } else {
+                summary.chars().rev().take(2000).collect::<String>().chars().rev().collect()
+            },
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 #[tauri::command]
 pub async fn project_open(path: String) -> Result<(), String> {

@@ -21,6 +21,7 @@ pub fn run() {
             commands::terminal_drain,
             commands::project_validate,
             commands::command_detect,
+            commands::agents_install_all,
             commands::project_open,
             commands::terminal_inspect,
             commands::system_status

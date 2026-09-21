@@ -270,6 +270,15 @@ export function App() {
                 </button>
               ))}
             </div>
+            {project && (
+              <button
+                className="agent-setup-trigger"
+                onClick={() => setDialog('agents')}
+                title="Check or install coding agents"
+              >
+                <Icon name="sparkles" /> Set up agents
+              </button>
+            )}
             <button
               className="primary new-terminal"
               aria-label="New terminal"

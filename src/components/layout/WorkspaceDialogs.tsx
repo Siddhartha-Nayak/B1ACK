@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
+import { AgentSetup } from './AgentSetup';
 import { NewTerminal } from '../terminal/NewTerminal';
 import { WorkspaceManager } from './WorkspaceManager';
 import { WorkspaceSearch } from './WorkspaceSearch';
@@ -9,6 +10,7 @@ import type { TerminalController } from '../../services/terminal/TerminalControl
 import type { WorkspacePlatform } from '../../services/platform';
 export type Dialog =
   | 'project'
+  | 'agents'
   | 'terminal'
   | 'search'
   | 'workspaces'
@@ -75,7 +77,7 @@ export function WorkspaceDialogs({
           activeTerminalId: null,
         }));
       }
-      setDialog(null);
+      setDialog('agents');
       setDrawer(false);
     } finally {
       setPending(false);
@@ -133,6 +135,7 @@ export function WorkspaceDialogs({
           </form>
         </Modal>
       )}
+      {dialog === 'agents' && <AgentSetup platform={platform} close={() => setDialog(null)} />}
       {dialog === 'terminal' && project && (
         <NewTerminal
           platform={platform}
