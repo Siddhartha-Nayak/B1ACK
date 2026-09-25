@@ -1,3 +1,5 @@
+pub mod project_browser;
+
 use crate::{
     system::{Metrics, Monitor},
     terminal::{Config, Manager, Packet},
@@ -150,6 +152,84 @@ pub async fn project_open(path: String) -> Result<(), String> {
             .spawn()
             .map_err(|e| format!("Could not open project folder: {e}"))?;
         Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn worktree_create(
+    path: String,
+    branch: String,
+    directory: String,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if directory.is_empty()
+            || directory == "."
+            || directory == ".."
+            || !directory
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            return Err(
+                "Use a directory name containing only letters, numbers, - or _.".to_string(),
+            );
+        }
+        if !branch.starts_with("codex/") {
+            return Err("Use a branch name beginning with codex/.".to_string());
+        }
+        let folder = crate::terminal::validate_folder(&path)?;
+        let valid_branch = std::process::Command::new("git")
+            .args(["check-ref-format", "--branch", &branch])
+            .output()
+            .map_err(|e| format!("Git is unavailable: {e}"))?;
+        if !valid_branch.status.success() {
+            return Err("Enter a valid Git branch name.".into());
+        }
+        let root_output = std::process::Command::new("git")
+            .args(["-C", &folder, "rev-parse", "--show-toplevel"])
+            .output()
+            .map_err(|e| format!("Could not inspect repository: {e}"))?;
+        if !root_output.status.success() {
+            return Err("This folder is not inside a Git repository.".into());
+        }
+        let root = std::path::PathBuf::from(
+            String::from_utf8_lossy(&root_output.stdout)
+                .trim()
+                .to_string(),
+        );
+        let parent = root
+            .parent()
+            .ok_or("Could not find a parent directory for this repository.")?;
+        let target = parent.join(&directory);
+        if target.exists() {
+            return Err("The worktree directory already exists. Choose another name.".into());
+        }
+        let branch_exists = std::process::Command::new("git")
+            .arg("-C")
+            .arg(&root)
+            .args(["show-ref", "--verify", "--quiet"])
+            .arg(format!("refs/heads/{branch}"))
+            .status()
+            .map_err(|e| format!("Could not check Git branch: {e}"))?;
+        if branch_exists.success() {
+            return Err("That branch already exists. Choose another name.".into());
+        }
+        let output = std::process::Command::new("git")
+            .arg("-C")
+            .arg(&root)
+            .args(["worktree", "add", "-b"])
+            .arg(&branch)
+            .arg(&target)
+            .arg("HEAD")
+            .output()
+            .map_err(|e| format!("Could not create worktree: {e}"))?;
+        if !output.status.success() {
+            return Err(format!(
+                "Git worktree creation failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ));
+        }
+        Ok(target.to_string_lossy().into_owned())
     })
     .await
     .map_err(|e| e.to_string())?

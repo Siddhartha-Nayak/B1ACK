@@ -164,4 +164,48 @@ describe('versioned workspace library', () => {
     store.removeTerminal('t');
     expect(store.getSnapshot().workspaces.find((w) => w.id === owner)?.terminals).toHaveLength(0);
   });
+  it('persists launch presets and task folders and validates their references', () => {
+    const storage = memory();
+    const store = new WorkspaceStore(createPersistence(storage));
+    store.update((w) => ({ ...w, projects: legacy.projects }));
+    store.addSessionFolder({ id: 'folder', projectId: 'p', name: 'Review' });
+    store.addTerminal({ ...legacy.terminals[0], folderId: 'folder' });
+    store.saveLaunchPreset({
+      id: 'launch',
+      projectId: 'p',
+      name: 'Codex and tests',
+      layout: 'grid',
+      gridColumns: 2,
+      terminals: [{ name: 'Codex', command: 'codex', args: [] }],
+    });
+    const loaded = createPersistence(storage).load().workspaces[0];
+    expect(loaded.sessionFolders[0].name).toBe('Review');
+    expect(loaded.terminals[0].folderId).toBe('folder');
+    expect(loaded.launchPresets[0].gridColumns).toBe(2);
+    const invalid = { ...loaded, sessionFolders: [] };
+    expect(() =>
+      parseLibrary(JSON.stringify({ ...store.getSnapshot(), workspaces: [invalid] })),
+    ).toThrow();
+  });
+  it('moves task folders and launch presets with their project', () => {
+    const store = new WorkspaceStore({ load: emptyLibrary, save() {} });
+    store.update((w) => ({ ...w, projects: legacy.projects }));
+    store.addSessionFolder({ id: 'folder', projectId: 'p', name: 'Feature' });
+    store.saveLaunchPreset({
+      id: 'launch',
+      projectId: 'p',
+      name: 'Start',
+      layout: 'tabs',
+      gridColumns: null,
+      terminals: [{ name: 'Shell', command: 'cmd.exe', args: [] }],
+    });
+    const source = store.current().id;
+    store.createWorkspace('Other');
+    const destination = store.current().id;
+    store.switchWorkspace(source);
+    store.moveProject('p', destination);
+    store.switchWorkspace(destination);
+    expect(store.current().sessionFolders.map((f) => f.id)).toEqual(['folder']);
+    expect(store.current().launchPresets.map((p) => p.id)).toEqual(['launch']);
+  });
 });

@@ -1,0 +1,44 @@
+.project-browser {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  color: var(--text, #e6e6e6);
+  background: var(--panel, #171717);
+  border-left: 1px solid var(--border, #303030);
+  font: 12px/1.45 var(--font-sans, "Segoe UI", sans-serif);
+}
+
+.project-browser button { color: inherit; font: inherit; }
+.project-browser__header { display: flex; align-items: center; justify-content: space-between; min-height: 42px; padding: 0 10px; border-bottom: 1px solid var(--border, #303030); }
+.project-browser__tabs { display: flex; align-self: stretch; gap: 14px; }
+.project-browser__tabs button { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 0; color: var(--muted, #999); background: transparent; border: 0; cursor: pointer; }
+.project-browser__tabs button.is-active { color: var(--text, #eee); }
+.project-browser__tabs button.is-active::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: currentColor; content: ""; }
+.project-browser__tabs span { padding: 0 5px; color: var(--muted, #999); background: var(--surface, #202020); border-radius: 8px; font-size: 10px; }
+.project-browser__refresh { width: 26px; height: 26px; color: var(--muted, #999) !important; background: transparent; border: 0; border-radius: 5px; cursor: pointer; font-size: 18px !important; }
+.project-browser__refresh:hover, .project-browser__preview-title button:hover { color: var(--text, #fff) !important; background: var(--surface-hover, #292929); }
+.project-browser__project, .project-browser__branch { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; overflow: hidden; color: var(--muted, #aaa); border-bottom: 1px solid var(--border, #303030); }
+.project-browser__project span:last-child, .project-browser__branch span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-browser__dot { width: 7px; height: 7px; flex: none; background: currentColor; border-radius: 50%; }
+.project-browser__branch small { margin-left: auto; color: var(--muted, #929292); white-space: pre; }
+.project-browser__list { flex: 1; min-height: 0; overflow: auto; padding: 5px 0; }
+.project-browser__row { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 27px; padding: 3px 10px 3px 12px; overflow: hidden; color: var(--text, #ddd); text-align: left; text-overflow: ellipsis; white-space: nowrap; background: transparent; border: 0; cursor: pointer; }
+.project-browser__row:hover { background: var(--surface-hover, #242424); }
+.project-browser__row.is-selected { background: var(--surface-selected, #292929); }
+.project-browser__file-icon { width: 12px; flex: none; color: var(--muted, #999); text-align: center; }
+.project-browser__filename { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-browser__row small { margin-left: auto; color: var(--muted, #858585); font-size: 10px; }
+.project-browser__change-code { width: 16px; flex: none; color: var(--muted, #aaa); font-size: 10px; text-align: center; }
+.project-browser__change-code.is-added { color: #a8c99a; }
+.project-browser__change-code.is-modified { color: #d4bd83; }
+.project-browser__change-code.is-deleted { color: #c58d8d; }
+.project-browser__empty, .project-browser__hint { padding: 16px 12px; color: var(--muted, #999); }
+.project-browser__error { margin: 8px 10px 0; padding: 8px 9px; color: var(--text, #e5e5e5); background: #262626; border-left: 2px solid #777; overflow-wrap: anywhere; }
+.project-browser__preview { display: flex; flex-direction: column; max-height: 42%; min-height: 110px; border-top: 1px solid var(--border, #333); background: var(--surface, #111); }
+.project-browser__preview-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; padding: 0 9px; color: var(--muted, #aaa); border-bottom: 1px solid var(--border, #292929); }
+.project-browser__preview-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-browser__preview-title button { width: 22px; height: 22px; flex: none; color: inherit; background: transparent; border: 0; border-radius: 4px; cursor: pointer; font-size: 18px; }
+.project-browser__preview pre { margin: 0; padding: 9px; overflow: auto; color: var(--text, #ddd); font: 11px/1.5 var(--font-mono, Consolas, monospace); white-space: pre; }
+@media (max-width: 760px) { .project-browser { border-top: 1px solid var(--border, #303030); border-left: 0; } }

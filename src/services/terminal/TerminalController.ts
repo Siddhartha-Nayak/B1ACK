@@ -1,6 +1,7 @@
 import type { TerminalSession, TerminalState } from '../../types/workspace';
 import type { TerminalService } from './TerminalService';
 import { TerminalView } from './TerminalView';
+import { isInputPrompt } from '../../features/terminals/inputPrompt';
 const STOPPED: TerminalState = { status: 'Stopped' };
 export class TerminalController {
   private states: Record<string, TerminalState> = {};
@@ -8,6 +9,7 @@ export class TerminalController {
   private listeners = new Set<() => void>();
   private busy = new Set<string>();
   private generations = new Map<string, number>();
+  private outputTails = new Map<string, string>();
   private timer?: ReturnType<typeof setTimeout>;
   private stopped = true;
   constructor(private service: TerminalService) {}
@@ -23,17 +25,31 @@ export class TerminalController {
   }
   private set(id: string, state: TerminalState) {
     const old = this.state(id);
-    if (old.status === state.status && old.error === state.error) return;
+    if (
+      old.status === state.status &&
+      old.error === state.error &&
+      old.waitingForInput === state.waitingForInput
+    )
+      return;
     this.states = { ...this.states, [id]: state };
     this.listeners.forEach((l) => l());
   }
   view(id: string) {
     let view = this.views.get(id);
     if (!view) {
-      view = new TerminalView(id, this.service, (e) => {
-        if (this.state(id).status === 'Running')
-          this.set(id, { ...this.state(id), error: String(e) });
-      });
+      view = new TerminalView(
+        id,
+        this.service,
+        (e) => {
+          if (this.state(id).status === 'Running')
+            this.set(id, { ...this.state(id), error: String(e) });
+        },
+        () => {
+          this.outputTails.delete(id);
+          if (this.state(id).waitingForInput)
+            this.set(id, { ...this.state(id), waitingForInput: false });
+        },
+      );
       this.views.set(id, view);
     }
     return view;
@@ -56,7 +72,17 @@ export class TerminalController {
             }
             if (this.generations.get(p.id) !== generations.get(p.id)) continue;
             this.views.get(p.id)?.receive(new Uint8Array(p.data), p.truncated);
-            this.set(p.id, { status: p.status, ...(p.error ? { error: p.error } : {}) });
+            const chunk = new TextDecoder().decode(new Uint8Array(p.data));
+            const tail = `${this.outputTails.get(p.id) ?? ''}${chunk}`.slice(-600);
+            this.outputTails.set(p.id, tail);
+            const waitingForInput =
+              p.status === 'Running' &&
+              (chunk.length ? isInputPrompt(tail) : Boolean(this.state(p.id).waitingForInput));
+            this.set(p.id, {
+              status: p.status,
+              ...(p.error ? { error: p.error } : {}),
+              ...(waitingForInput ? { waitingForInput: true } : {}),
+            });
             if (p.status === 'Exited')
               void this.service
                 .close(p.id)
@@ -84,6 +110,7 @@ export class TerminalController {
     try {
       await this.service.close(session.id);
       this.generations.set(session.id, (this.generations.get(session.id) ?? 0) + 1);
+      this.outputTails.delete(session.id);
       this.views.get(session.id)?.dispose();
       this.views.delete(session.id);
       const view = this.view(session.id);
@@ -102,6 +129,7 @@ export class TerminalController {
     try {
       await this.service.close(id);
       this.generations.set(id, (this.generations.get(id) ?? 0) + 1);
+      this.outputTails.delete(id);
       this.views.get(id)?.dispose();
       this.views.delete(id);
       this.set(id, { status: 'Stopped' });

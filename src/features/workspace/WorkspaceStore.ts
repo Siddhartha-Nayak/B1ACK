@@ -5,6 +5,8 @@ import {
   type WorkspaceLibrary,
   type TerminalSession,
   type CliPreset,
+  type SessionFolder,
+  type LaunchPreset,
 } from '../../types/workspace';
 import type { WorkspacePersistence } from '../../services/persistence/workspace';
 export function reorder<T extends { id: string }>(items: T[], id: string, before: string): T[] {
@@ -20,6 +22,7 @@ export function reorder<T extends { id: string }>(items: T[], id: string, before
 }
 function repair(w: Workspace): Workspace {
   const ids = new Set(w.terminals.map((t) => t.id));
+  const projectIds = new Set(w.projects.map((p) => p.id));
   const projectId = w.projects.some((p) => p.id === w.activeProjectId)
     ? w.activeProjectId
     : (w.projects[0]?.id ?? null);
@@ -31,6 +34,8 @@ function repair(w: Workspace): Workspace {
       : (w.terminals.find((t) => t.projectId === projectId)?.id ?? null),
     visibleTerminalIds: w.visibleTerminalIds.filter((id) => ids.has(id)),
     paneSizes: Object.fromEntries(Object.entries(w.paneSizes).filter(([id]) => ids.has(id))),
+    sessionFolders: w.sessionFolders.filter((folder) => projectIds.has(folder.projectId)),
+    launchPresets: w.launchPresets.filter((preset) => projectIds.has(preset.projectId)),
   };
 }
 export class WorkspaceStore {
@@ -159,6 +164,84 @@ export class WorkspaceStore {
       ),
     });
   }
+  addTerminals(
+    projectId: string,
+    sessions: TerminalSession[],
+    layout?: Workspace['layout'],
+    gridColumns?: number | null,
+  ) {
+    if (!sessions.length) return;
+    const owner = this.state.workspaces.find((w) => w.projects.some((p) => p.id === projectId));
+    if (!owner || sessions.some((t) => t.projectId !== projectId))
+      throw new Error('The launch preset project is unavailable.');
+    this.commit({
+      ...this.state,
+      workspaces: this.state.workspaces.map((w) =>
+        w.id === owner.id
+          ? repair({
+              ...w,
+              terminals: [...w.terminals, ...sessions],
+              visibleTerminalIds: [...w.visibleTerminalIds, ...sessions.map((t) => t.id)],
+              activeProjectId: projectId,
+              activeTerminalId: sessions[0].id,
+              ...(layout ? { layout } : {}),
+              ...(gridColumns !== undefined ? { gridColumns } : {}),
+            })
+          : w,
+      ),
+    });
+  }
+  saveLaunchPreset(preset: LaunchPreset) {
+    this.update((w) => {
+      if (!w.projects.some((p) => p.id === preset.projectId)) throw new Error('Project not found.');
+      return {
+        ...w,
+        launchPresets: [...w.launchPresets.filter((p) => p.id !== preset.id), preset],
+      };
+    });
+  }
+  deleteLaunchPreset(id: string) {
+    this.update((w) => ({ ...w, launchPresets: w.launchPresets.filter((p) => p.id !== id) }));
+  }
+  addSessionFolder(folder: SessionFolder) {
+    this.update((w) => {
+      if (!w.projects.some((p) => p.id === folder.projectId)) throw new Error('Project not found.');
+      return { ...w, sessionFolders: [...w.sessionFolders, folder] };
+    });
+  }
+  renameSessionFolder(id: string, name: string) {
+    if (!name.trim()) throw new Error('Enter a folder name.');
+    this.update((w) => ({
+      ...w,
+      sessionFolders: w.sessionFolders.map((folder) =>
+        folder.id === id ? { ...folder, name: name.trim() } : folder,
+      ),
+    }));
+  }
+  removeSessionFolder(id: string) {
+    this.update((w) => ({
+      ...w,
+      sessionFolders: w.sessionFolders.filter((folder) => folder.id !== id),
+      terminals: w.terminals.map((t) => (t.folderId === id ? { ...t, folderId: undefined } : t)),
+    }));
+  }
+  moveTerminalToFolder(id: string, folderId: string | null) {
+    this.update((w) => {
+      const terminal = w.terminals.find((t) => t.id === id);
+      if (!terminal) return w;
+      if (
+        folderId &&
+        !w.sessionFolders.some((f) => f.id === folderId && f.projectId === terminal.projectId)
+      )
+        throw new Error('Session folder not found in this project.');
+      return {
+        ...w,
+        terminals: w.terminals.map((t) =>
+          t.id === id ? { ...t, folderId: folderId ?? undefined } : t,
+        ),
+      };
+    });
+  }
   removeTerminal(id: string) {
     this.commit({
       ...this.state,
@@ -188,6 +271,8 @@ export class WorkspaceStore {
     const project = source.projects.find((p) => p.id === id);
     if (!project || !target || source.id === targetId) return;
     const terminals = source.terminals.filter((t) => t.projectId === id);
+    const sessionFolders = source.sessionFolders.filter((folder) => folder.projectId === id);
+    const launchPresets = source.launchPresets.filter((preset) => preset.projectId === id);
     const ids = new Set(terminals.map((t) => t.id));
     this.commit({
       ...this.state,
@@ -202,6 +287,8 @@ export class WorkspaceStore {
             ? {
                 ...w,
                 projects: [...w.projects, project],
+                sessionFolders: [...w.sessionFolders, ...sessionFolders],
+                launchPresets: [...w.launchPresets, ...launchPresets],
                 terminals: [...w.terminals, ...terminals],
                 visibleTerminalIds: [...w.visibleTerminalIds, ...terminals.map((t) => t.id)],
                 paneSizes: {

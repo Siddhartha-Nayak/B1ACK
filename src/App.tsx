@@ -19,6 +19,7 @@ import { TerminalLayout } from './components/terminal/TerminalLayout';
 import { StatusBar } from './components/status/StatusBar';
 import { useWorkspaceShortcuts } from './features/workspace/useWorkspaceShortcuts';
 import type { TerminalSession } from './types/workspace';
+import { SessionWorkspace } from './components/layout/SessionWorkspace';
 const store = new WorkspaceStore(localWorkspace);
 const controller = new TerminalController(desktopTerminal);
 export function App() {
@@ -27,6 +28,9 @@ export function App() {
   const states = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [monoMode, setMonoMode] = useState(
+    () => localStorage.getItem('parallelade.view') !== 'classic',
+  );
   const [drawer, setDrawer] = useState(false);
   const [error, setError] = useState(store.error || store.warning);
   const [narrow, setNarrow] = useState(innerWidth < 768);
@@ -100,6 +104,58 @@ export function App() {
     search: () => setDialog('search'),
   });
   const sidebarHidden = !narrow && workspace.sidebarCollapsed;
+  const switchView = (mono: boolean) => {
+    localStorage.setItem('parallelade.view', mono ? 'mono' : 'classic');
+    setMonoMode(mono);
+  };
+  if (monoMode) {
+    return (
+      <>
+        <SessionWorkspace
+          workspace={workspace}
+          library={library}
+          store={store}
+          controller={controller}
+          states={states}
+          platform={desktopPlatform}
+          active={
+            project
+              ? (terminals.find(
+                  (terminal) =>
+                    terminal.id === workspace.activeTerminalId && terminal.projectId === project.id,
+                ) ?? terminals.find((terminal) => terminal.projectId === project.id))
+              : undefined
+          }
+          project={project}
+          narrow={narrow}
+          error={error}
+          onDismissError={() => setError('')}
+          onClassic={() => switchView(false)}
+          onNewTerminal={newTerminal}
+          onAddProject={addProject}
+          onSelect={select}
+          onStart={start}
+          onClose={close}
+          onRename={rename}
+          onDialog={setDialog}
+          shortcuts={shortcuts}
+          run={run}
+        />
+        <WorkspaceDialogs
+          key={`${workspace.id}:${typeof dialog === 'object' ? dialog?.id : dialog}`}
+          dialog={dialog}
+          setDialog={setDialog}
+          workspace={workspace}
+          store={store}
+          controller={controller}
+          platform={desktopPlatform}
+          select={select}
+          start={start}
+          setDrawer={setDrawer}
+        />
+      </>
+    );
+  }
   return (
     <div
       className={`app-shell ${sidebarHidden ? 'sidebar-collapsed' : ''}`}
@@ -155,6 +211,9 @@ export function App() {
           aria-pressed={libraryOpen}
         >
           Library
+        </button>
+        <button className="library-button" onClick={() => switchView(true)}>
+          Session workspace
         </button>
         <button className="search-button" onClick={() => setDialog('search')}>
           <Icon name="search" />
@@ -270,6 +329,25 @@ export function App() {
                 </button>
               ))}
             </div>
+            {project && (
+              <button
+                className="agent-setup-trigger"
+                onClick={() => setDialog('launch')}
+                title="Save or launch a terminal group"
+              >
+                <Icon name="grid" /> Launch presets
+              </button>
+            )}
+            {project && (
+              <button
+                className="agent-setup-trigger"
+                onClick={() => setDialog('worktree')}
+                disabled={!desktopPlatform.available}
+                title="Create a separate Git worktree"
+              >
+                <Icon name="tabs" /> New worktree
+              </button>
+            )}
             {project && (
               <button
                 className="agent-setup-trigger"

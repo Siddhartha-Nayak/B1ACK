@@ -47,10 +47,16 @@ export class TerminalView {
   private pendingBytes = 0;
   cols = 100;
   rows = 30;
+  private retire(terminal: Terminal) {
+    // xterm schedules an initial viewport timer that is not cancelled by
+    // dispose(); defer release so that timer can finish with a live renderer.
+    setTimeout(() => terminal.dispose(), 150);
+  }
   constructor(
     readonly id: string,
     private service: TerminalService,
     private onError: (e: unknown) => void,
+    private onInput?: () => void,
   ) {
     [this.terminal, this.serialize] = this.create();
   }
@@ -77,7 +83,10 @@ export class TerminalView {
     const serialize = new SerializeAddon();
     terminal.loadAddon(serialize);
     terminal.onData((data) => {
-      if (!this.disposed) void this.service.write(this.id, data).catch(this.onError);
+      if (!this.disposed) {
+        this.onInput?.();
+        void this.service.write(this.id, data).catch(this.onError);
+      }
     });
     return [terminal, serialize];
   }
@@ -143,7 +152,7 @@ export class TerminalView {
         terminal.write('', () => {
           if (!this.disposed) {
             const snapshot = serialize.serialize({ scrollback: 1500 });
-            terminal.dispose();
+            this.retire(terminal);
             [this.terminal, this.serialize] = this.create();
             this.terminal.write(snapshot, () => {
               this.paused = false;
@@ -165,6 +174,6 @@ export class TerminalView {
   dispose() {
     this.disposed = true;
     this.buffer.take();
-    this.terminal.dispose();
+    this.retire(this.terminal);
   }
 }

@@ -1,0 +1,114 @@
+.launch-presets {
+  display: grid;
+  gap: 16px;
+  min-width: min(560px, 76vw);
+}
+
+.launch-presets-intro {
+  line-height: 1.5;
+}
+
+.launch-presets-intro strong {
+  color: #efefef;
+}
+
+.launch-presets-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.launch-presets-create label {
+  display: grid;
+  gap: 7px;
+  color: #b9b9b9;
+  font-size: 12px;
+}
+
+.launch-presets-create input {
+  min-width: 0;
+}
+
+.launch-presets-error {
+  color: #e0e0e0;
+  font-size: 12px;
+}
+
+.launch-presets-list {
+  display: grid;
+  gap: 8px;
+  max-height: 42vh;
+  overflow: auto;
+}
+
+.launch-presets-empty {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 24px 12px;
+  border: 1px dashed #3b3b3b;
+  border-radius: 8px;
+  color: #898989;
+  text-align: center;
+}
+
+.launch-presets-empty p {
+  color: #d4d4d4;
+}
+
+.launch-presets-glyph {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #565656;
+  border-radius: 8px;
+  color: #dedede;
+  font-size: 19px;
+}
+
+.launch-preset {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 13px;
+  border: 1px solid #343434;
+  border-radius: 8px;
+  background: #181818;
+}
+
+.launch-preset-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.launch-preset-copy strong {
+  overflow: hidden;
+  color: #e8e8e8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.launch-preset-copy span {
+  color: #858585;
+  font-size: 11px;
+}
+
+.launch-preset-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 560px) {
+  .launch-presets {
+    min-width: 0;
+  }
+
+  .launch-presets-create {
+    grid-template-columns: 1fr;
+  }
+}

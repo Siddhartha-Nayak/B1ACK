@@ -1,5 +1,6 @@
 mod commands;
 mod library;
+mod project_browser;
 mod system;
 pub mod terminal;
 use tauri::Manager as _;
@@ -23,7 +24,12 @@ pub fn run() {
             commands::command_detect,
             commands::agents_install_all,
             commands::project_open,
+            commands::worktree_create,
             commands::terminal_inspect,
+            commands::project_browser::project_files_list,
+            commands::project_browser::project_file_read,
+            commands::project_browser::project_git_status,
+            commands::project_browser::project_git_diff,
             commands::system_status
         ])
         .build(tauri::generate_context!())

@@ -1,6 +1,7 @@
 import { Icon } from '../ui/Icon';
 import { memo, type ReactNode } from 'react';
 import { TerminalPane } from './TerminalPane';
+import { TerminalProviderIcon } from './TerminalProviderIcon';
 import type { TerminalSession, TerminalState } from '../../types/workspace';
 import type { TerminalController } from '../../services/terminal/TerminalController';
 export const TerminalCard = memo(function TerminalCard({
@@ -47,13 +48,12 @@ export const TerminalCard = memo(function TerminalCard({
         }}
       >
         {dragHandle}
-        <span className="prompt-icon">
-          <Icon name="terminal" size={14} />
-        </span>
+        <TerminalProviderIcon presetId={session.presetId} name={session.name} size={14} />
         <button
           className="terminal-name"
           onClick={() => rename(session.id)}
-          title="Rename terminal"
+          aria-label={`Rename terminal ${session.name}`}
+          title={`Rename terminal: ${session.name}`}
         >
           {session.name}
         </button>
@@ -64,21 +64,42 @@ export const TerminalCard = memo(function TerminalCard({
         <button
           className="icon-button"
           aria-label={`${maximized ? 'Restore layout for' : 'Maximize'} ${session.name}`}
+          title={`${maximized ? 'Restore layout for' : 'Maximize'} ${session.name}`}
           onClick={() => maximize(session.id)}
         >
           <Icon name={maximized ? 'restore' : 'maximize'} size={14} />
         </button>
         <details className="terminal-more">
-          <summary aria-label={`More ${session.name}`}>
+          <summary
+            aria-label={`More actions for ${session.name}`}
+            title={`More actions for ${session.name}`}
+          >
             <Icon name="more" size={14} />
           </summary>
           <div>
             <button onClick={() => rename(session.id)}>Rename</button>
             <button onClick={() => hide(session.id)}>Hide from grid</button>
+            <button
+              aria-label={`Restart process for ${session.name}`}
+              disabled={state.status === 'Starting'}
+              onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open');
+                start(session);
+              }}
+            >
+              Restart process
+            </button>
+            <button
+              aria-label={`Close terminal ${session.name}`}
+              disabled={state.status === 'Starting'}
+              onClick={() => close(session.id)}
+            >
+              Close terminal
+            </button>
           </div>
         </details>
         <button
-          className="icon-button"
+          className="icon-button terminal-action-secondary"
           aria-label={`Restart ${session.name}`}
           title="Restart process"
           disabled={state.status === 'Starting'}
@@ -87,8 +108,9 @@ export const TerminalCard = memo(function TerminalCard({
           <Icon name="restart" size={14} />
         </button>
         <button
-          className="icon-button"
+          className="icon-button terminal-action-secondary"
           aria-label={`Close ${session.name}`}
+          title={`Close ${session.name}`}
           disabled={state.status === 'Starting'}
           onClick={() => close(session.id)}
         >

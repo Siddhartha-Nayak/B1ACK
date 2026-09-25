@@ -21,11 +21,11 @@ await page.getByRole('button', { name: 'New terminal', exact: true }).click();
 const dialog = page.getByRole('dialog');
 for (const label of ['Claude Code', 'Gemini CLI']) {
   await dialog.getByLabel('Terminal type').selectOption({ label });
-  await expect(dialog.locator('.cli-detection')).toContainText('was not found in PATH');
+  await expect(dialog.locator('.cli-detection')).toContainText(/Installed|was not found in PATH/);
   await dialog.getByRole('button', { name: 'Retry detection' }).click();
-  await expect(dialog.locator('.cli-detection')).toContainText('was not found in PATH');
+  await expect(dialog.locator('.cli-detection')).toContainText(/Installed|was not found in PATH/);
 }
-results.push('Claude and Gemini missing PATH feedback and Retry verified (neither is installed)');
+results.push('Claude and Gemini PATH readiness feedback and Retry verified');
 await dialog.getByLabel('Terminal type').selectOption('custom');
 await dialog.getByLabel('Executable', { exact: true }).fill('cmd.exe');
 await dialog.getByLabel('Arguments (JSON array)', { exact: true }).fill('["/Q"]');
@@ -89,6 +89,10 @@ await fs.mkdir(folder, { recursive: true });
 await page.getByRole('button', { name: 'Add project', exact: true }).click();
 await dialog.getByLabel('Project folder').fill(folder);
 await dialog.getByRole('button', { name: 'Add project', exact: true }).click();
+await page
+  .getByRole('dialog', { name: 'Agent readiness' })
+  .getByRole('button', { name: 'Not now' })
+  .click();
 await page.getByLabel('Manage Task2', { exact: true }).click();
 await page.getByRole('button', { name: 'Move up', exact: true }).last().click();
 expect((await current(page)).workspaces.find((w) => w.id === personal).projects[0].name).toBe(

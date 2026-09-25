@@ -44,7 +44,7 @@ export function Icon({ name, size = 16 }: { name: Name; size?: number }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={name === 'more' || name === 'grip' ? 3 : 1.6}
+      strokeWidth={1.6}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

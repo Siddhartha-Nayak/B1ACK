@@ -5,6 +5,8 @@ import {
   type WorkspaceLibrary,
   type CliPreset,
   type PaneSize,
+  type SessionFolder,
+  type LaunchPreset,
 } from '../../types/workspace';
 export const LEGACY_KEY = 'parallelade.workspace.v1';
 export const STORAGE_KEY = 'parallelade.library.v2';
@@ -37,7 +39,35 @@ function parseOne(v: unknown, legacy = false): Workspace {
     )
       throw new Error('Invalid or duplicate project.');
     projectIds.add(p.id);
-    return { id: p.id, name: p.name, path: p.path, collapsed: p.collapsed === true };
+    if (p.worktreeOf !== undefined && !text(p.worktreeOf))
+      throw new Error('Invalid worktree origin.');
+    return {
+      id: p.id,
+      name: p.name,
+      path: p.path,
+      collapsed: p.collapsed === true,
+      ...(typeof p.worktreeOf === 'string' ? { worktreeOf: p.worktreeOf } : {}),
+    };
+  });
+  const folderIds = new Set<string>();
+  const folderProjects = new Map<string, string>();
+  if (!legacy && v.sessionFolders !== undefined && !Array.isArray(v.sessionFolders))
+    throw new Error('Invalid session folders.');
+  const sessionFolders: SessionFolder[] = (
+    legacy ? [] : ((v.sessionFolders ?? []) as unknown[])
+  ).map((folder) => {
+    if (
+      !record(folder) ||
+      !text(folder.id) ||
+      folderIds.has(folder.id) ||
+      !text(folder.projectId) ||
+      !projectIds.has(folder.projectId) ||
+      !text(folder.name)
+    )
+      throw new Error('Invalid session folder.');
+    folderIds.add(folder.id);
+    folderProjects.set(folder.id, folder.projectId);
+    return { id: folder.id, projectId: folder.projectId, name: folder.name };
   });
   const ids = new Set<string>();
   const terminals = v.terminals.map((t) => {
@@ -52,7 +82,9 @@ function parseOne(v: unknown, legacy = false): Workspace {
       !text(t.command) ||
       !args(t.args) ||
       !finite(t.createdAt) ||
-      (t.presetId !== undefined && !text(t.presetId))
+      (t.presetId !== undefined && !text(t.presetId)) ||
+      (t.folderId !== undefined &&
+        (!text(t.folderId) || folderProjects.get(t.folderId) !== t.projectId))
     )
       throw new Error('Invalid or orphaned terminal definition.');
     ids.add(t.id);
@@ -65,8 +97,57 @@ function parseOne(v: unknown, legacy = false): Workspace {
       args: t.args,
       createdAt: t.createdAt,
       presetId: typeof t.presetId === 'string' ? t.presetId : undefined,
+      folderId: typeof t.folderId === 'string' ? t.folderId : undefined,
     };
   });
+  if (!legacy && v.launchPresets !== undefined && !Array.isArray(v.launchPresets))
+    throw new Error('Invalid launch presets.');
+  const launchIds = new Set<string>();
+  const launchPresets: LaunchPreset[] = (legacy ? [] : ((v.launchPresets ?? []) as unknown[])).map(
+    (preset) => {
+      if (
+        !record(preset) ||
+        !text(preset.id) ||
+        launchIds.has(preset.id) ||
+        !text(preset.projectId) ||
+        !projectIds.has(preset.projectId) ||
+        !text(preset.name) ||
+        !['tabs', 'grid', 'split'].includes(String(preset.layout)) ||
+        (preset.gridColumns !== null &&
+          (!finite(preset.gridColumns) ||
+            !Number.isInteger(preset.gridColumns) ||
+            preset.gridColumns < 1)) ||
+        !Array.isArray(preset.terminals) ||
+        !preset.terminals.length
+      )
+        throw new Error('Invalid launch preset.');
+      launchIds.add(preset.id);
+      const definitions = preset.terminals.map((terminal) => {
+        if (
+          !record(terminal) ||
+          !text(terminal.name) ||
+          !text(terminal.command) ||
+          !args(terminal.args) ||
+          (terminal.presetId !== undefined && !text(terminal.presetId))
+        )
+          throw new Error('Invalid launch terminal definition.');
+        return {
+          name: terminal.name,
+          command: terminal.command,
+          args: terminal.args,
+          ...(typeof terminal.presetId === 'string' ? { presetId: terminal.presetId } : {}),
+        };
+      });
+      return {
+        id: preset.id,
+        projectId: preset.projectId,
+        name: preset.name,
+        layout: preset.layout as Workspace['layout'],
+        gridColumns: preset.gridColumns as number | null,
+        terminals: definitions,
+      };
+    },
+  );
   const base = emptyWorkspace(
     legacy ? 'Default' : (v.name as string),
     legacy ? 'migrated-default' : (v.id as string),
@@ -111,6 +192,8 @@ function parseOne(v: unknown, legacy = false): Workspace {
   return {
     ...base,
     projects,
+    sessionFolders,
+    launchPresets,
     terminals,
     layout: v.layout as Workspace['layout'],
     activeProjectId,

@@ -6,6 +6,9 @@ export async function connect() {
   const browser = await chromium.connectOverCDP('http://127.0.0.1:9224');
   const context = browser.contexts()[0];
   const page = context.pages()[0];
+  await page.waitForSelector('.session-shell, .app-shell');
+  await page.evaluate(() => localStorage.setItem('parallelade.view', 'classic'));
+  await page.reload();
   await page.waitForSelector('.app-shell');
   const title = await page.evaluate(async () => {
     const { getCurrentWindow } = await import('/node_modules/@tauri-apps/api/window.js');

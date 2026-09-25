@@ -10,9 +10,13 @@ export function TerminalPane({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const element = ref.current!;
+    // xterm's dispose releases listeners but can leave its old DOM in the pane.
+    // A restarted process must mount into an empty surface.
+    element.replaceChildren();
     let dispose: (() => void) | undefined;
     let cancelled = false;
-    void view.mount(ref.current!, shortcuts).then((cleanup) => {
+    void view.mount(element, shortcuts).then((cleanup) => {
       if (cancelled) cleanup();
       else dispose = cleanup;
     });

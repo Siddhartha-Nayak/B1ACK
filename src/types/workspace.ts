@@ -5,12 +5,32 @@ export interface Project {
   name: string;
   path: string;
   collapsed?: boolean;
+  worktreeOf?: string;
+}
+export interface SessionFolder {
+  id: string;
+  projectId: string;
+  name: string;
+}
+export interface LaunchPreset {
+  id: string;
+  projectId: string;
+  name: string;
+  layout: Layout;
+  gridColumns: number | null;
+  terminals: Array<{
+    name: string;
+    presetId?: string;
+    command: string;
+    args: string[];
+  }>;
 }
 export interface TerminalSession {
   id: string;
   projectId: string;
   name: string;
   presetId?: string;
+  folderId?: string;
   cwd: string;
   command: string;
   args: string[];
@@ -24,6 +44,8 @@ export interface Workspace {
   id: string;
   name: string;
   projects: Project[];
+  sessionFolders: SessionFolder[];
+  launchPresets: LaunchPreset[];
   terminals: TerminalSession[];
   layout: Layout;
   gridColumns: number | null;
@@ -52,6 +74,7 @@ export interface WorkspaceLibrary {
 export interface TerminalState {
   status: TerminalStatus;
   error?: string;
+  waitingForInput?: boolean;
 }
 export interface SystemStatus {
   cpu: number;
@@ -62,6 +85,8 @@ export const emptyWorkspace = (name = 'Default', id: string = crypto.randomUUID(
   id,
   name,
   projects: [],
+  sessionFolders: [],
+  launchPresets: [],
   terminals: [],
   layout: 'tabs',
   gridColumns: null,

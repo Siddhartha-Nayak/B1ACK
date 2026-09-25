@@ -17,7 +17,7 @@ await expect
 await expect(page.locator('.xterm-rows')).toContainText('PS ');
 await expect(page.locator('.xterm-rows')).not.toContainText('BEFORE_RESTART');
 results.push('Restart creates a new PID and resets only that terminal');
-await page.getByRole('button', { name: 'Terminal-1', exact: true }).last().click();
+await page.getByRole('button', { name: 'Rename terminal Terminal-1', exact: true }).click();
 await page.getByRole('dialog').getByLabel('Name', { exact: true }).fill('Renamed shell');
 await page.getByRole('button', { name: 'Save name', exact: true }).click();
 expect((await current(page)).workspaces[0].terminals[0].name).toBe('Renamed shell');
@@ -34,12 +34,12 @@ await expect
         Array.from(el.querySelectorAll('span')).some(
           (s) =>
             s.textContent.includes('ANSI_RED') &&
-            getComputedStyle(s).color === 'rgb(241, 139, 139)',
+            getComputedStyle(s).color === 'rgb(238, 238, 238)',
         ),
       ),
   )
   .toBe(true);
-results.push('ANSI color output remains colored in monochrome chrome');
+results.push('ANSI color output follows the monochrome terminal palette');
 await invoke(page, 'terminal_write', { id: 'test-t1', data: 'exit 7\r' });
 await expect(page.locator('.terminal-error')).toContainText('7');
 await page.getByRole('button', { name: 'Grid', exact: true }).click();

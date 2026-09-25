@@ -4,6 +4,12 @@ import { AgentSetup } from './AgentSetup';
 import { NewTerminal } from '../terminal/NewTerminal';
 import { WorkspaceManager } from './WorkspaceManager';
 import { WorkspaceSearch } from './WorkspaceSearch';
+import { WorktreeCreate } from './WorktreeCreate';
+import { LaunchPresetsModal } from '../../features/launch-presets/LaunchPresetsModal';
+import {
+  captureLaunchPreset,
+  instantiateLaunchPreset,
+} from '../../features/launch-presets/helpers';
 import type { Workspace, TerminalSession } from '../../types/workspace';
 import type { WorkspaceStore } from '../../features/workspace/WorkspaceStore';
 import type { TerminalController } from '../../services/terminal/TerminalController';
@@ -14,6 +20,8 @@ export type Dialog =
   | 'terminal'
   | 'search'
   | 'workspaces'
+  | 'launch'
+  | 'worktree'
   | { kind: 'rename'; id: string; target: 'project' | 'terminal' }
   | { kind: 'remove'; id: string }
   | null;
@@ -135,7 +143,71 @@ export function WorkspaceDialogs({
           </form>
         </Modal>
       )}
-      {dialog === 'agents' && <AgentSetup platform={platform} close={() => setDialog(null)} />}
+      {dialog === 'agents' && (
+        <AgentSetup platform={platform} projectPath={project?.path} close={() => setDialog(null)} />
+      )}
+      {dialog === 'launch' && project && (
+        <LaunchPresetsModal
+          projectName={project.name}
+          presets={workspace.launchPresets.filter((preset) => preset.projectId === project.id)}
+          close={() => setDialog(null)}
+          onSave={(name) => {
+            const preset = captureLaunchPreset(workspace, project.id, name);
+            if (!preset.terminals.length)
+              throw new Error('Create a terminal for this project before saving a launch preset.');
+            store.saveLaunchPreset(preset);
+          }}
+          onDelete={(id) => store.deleteLaunchPreset(id)}
+          onLaunch={(preset) => {
+            const launch = instantiateLaunchPreset(preset, project.id, project.path, {
+              existingTerminalIds: workspace.terminals.map((terminal) => terminal.id),
+            });
+            store.addTerminals(project.id, launch.terminals, launch.layout, launch.gridColumns);
+            setDialog(null);
+            for (const session of launch.terminals) start(session);
+          }}
+        />
+      )}
+      {dialog === 'worktree' && project && (
+        <WorktreeCreate
+          project={project}
+          platform={platform}
+          close={() => setDialog(null)}
+          created={(path, branch) => {
+            const projectId = crypto.randomUUID();
+            const folderId = crypto.randomUUID();
+            const session: TerminalSession = {
+              id: crypto.randomUUID(),
+              projectId,
+              folderId,
+              name: 'Shell',
+              cwd: path,
+              command: /Windows/i.test(navigator.userAgent) ? 'cmd.exe' : 'sh',
+              args: [],
+              createdAt: Date.now(),
+            };
+            store.update((s) => ({
+              ...s,
+              projects: [
+                ...s.projects,
+                {
+                  id: projectId,
+                  name: path.split(/[\\/]/).filter(Boolean).pop() || branch,
+                  path,
+                  worktreeOf: project.id,
+                },
+              ],
+              sessionFolders: [...s.sessionFolders, { id: folderId, projectId, name: branch }],
+              terminals: [...s.terminals, session],
+              visibleTerminalIds: [...s.visibleTerminalIds, session.id],
+              activeProjectId: projectId,
+              activeTerminalId: session.id,
+            }));
+            setDialog(null);
+            start(session);
+          }}
+        />
+      )}
       {dialog === 'terminal' && project && (
         <NewTerminal
           platform={platform}
